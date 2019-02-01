@@ -23,7 +23,12 @@ en_df$en_h3 = en_df$en_h1*3
 en_df$en_h4 = en_df$en_h1*4
 en_df$en_h5 = en_df$en_h1*5
 en_df$en_h6 = en_df$en_h1*6
-
+en_df$en_h2 = en_df$en_h1*7
+en_df$en_h3 = en_df$en_h1*8
+en_df$en_h4 = en_df$en_h1*9
+en_df$en_h5 = en_df$en_h1*10
+en_df$en_h6 = en_df$en_h1*11
+en_df$en_h6 = en_df$en_h1*12
 
 # make the wide dataset long (i.e., tidy) 
 en_df_tidy = gather(en_df, hour, en_per_hour, 42:47)
@@ -59,20 +64,36 @@ Sp_sum = en_df_tidy %>%
 
 # graph, energy in corrected for mass
 plot_corr_en_per_h <- ggplot(en_df_tidy, aes(hour, log(corr_en_per_hour), color = Species)) +
-  geom_point() +
-  geom_path(group=en_df_tidy$ID) 
-#geom_smooth(aes(group=en_df_tidy$Species), color = "black")
+  geom_point(alpha = 0.2) +
+  geom_path(group=en_df_tidy$ID, alpha = 0.2) +
+  geom_smooth(aes(group=en_df_tidy$Species)) + geom_smooth(color = "black", linetype="dashed") +
+  theme_bw()
 plot_corr_en_per_h
 
-Sp_sum %>% as.data.frame(Sp_sum)
+#get data ready to plot
+Sp_sum = as.data.frame(Sp_sum)
+Sp_sum$Species = as.factor(Sp_sum$Species)
+
+
+###
+# First plot working
+###
 plot_en_per_h_w_avg <- ggplot() +
-  geom_point(en_df_tidy, aes(hour, log(corr_en_per_hour)), color = en_df_tidy$Species, alpha = 0.2) +
-  geom_path(en_df_tidy, aes(hour, log(corr_en_per_hour)), group=en_df_tidy$ID, alpha = 0.2) +
-  #geom_point(data = Sp_sum, aes(hour, mean_corr_en_per_hour, color = Species)) +
-  #geom_path(data = Sp_sum, aes(hour, mean_corr_en_per_hour, group=en_df_tidy$ID))
+  geom_point(data=en_df_tidy, aes(hour, log(corr_en_per_hour), color = Species), alpha = 0.2) +
+  geom_path(data=en_df_tidy, aes(hour, log(corr_en_per_hour), color = Species), group=en_df_tidy$ID, alpha = 0.2) +
+  geom_point(data = Sp_sum, aes(hour, log(mean_corr_en_per_hour), color = Species), size = 4) +
+  geom_path(data = Sp_sum, aes(hour, log(mean_corr_en_per_hour), color = Species, group = Sp_sum$Species)) +
+  geom_smooth(data=en_df_tidy, aes(hour, log(corr_en_per_hour)), color = "black", linetype="dashed") +
+  #geom_path(data = en_df_tidy, aes(hour, log(corr_en_per_hour), color = "black", linetype="dashed")) +
+  scale_fill_manual(values = c("Berardius_bairdii","Globicephala_macrorhynchus", "Globicephala_melas","Grampus_griseus", "Mesoplodon_densirostris",
+                               "Orcinus_orca","Phocoena_phocoena", "Physeter_macrocephalus", "Ziphius_cavirostris"),                      
+                     labels = c("Berardius bairdii","Globicephala macrorhynchus", "Globicephala melas","Grampus griseus", "Mesoplodon densirostris",
+                                "Orcinus orca","Phocoena phocoena", "Physeter macrocephalus", "Ziphius cavirostris")) +
+  theme_bw() +
+  labs(x = "Time (hours)", y = "log[Energy gain corrected for body mass (kJ/kg)]") 
 plot_en_per_h_w_avg
 
-
+scale_fill_manual(name="My new legend", values=c("brown1","darkolivegreen4","burlywood3", labels=c("condition1", "condition2", "condition3")) +
 
 # graph 
 plot_en_per_h <- ggplot(en_df_tidy, aes(hour, log(en_per_hour/Body_mass_kg), color = Species)) +
