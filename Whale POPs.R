@@ -21,10 +21,16 @@ Whale_POPs$'Average Pollutant load (ng/g lipid wt)' <- as.numeric(Whale_POPs$'Av
 Whale_POPs$`Prey type` = as.factor(Whale_POPs$`Prey type`)
 Whale_POPs = Whale_POPs %>% separate(Species,into = c("Genus","just Species"), sep=" ", remove = FALSE)
 
+Whale_POPs$Basin <- with(Whale_POPs, case_when(Region %in% c("Central North Pacific", "Northeast Pacific", "Northwest Pacific") ~ "North Pacific", 
+                                               Region %in% c("Southeast Pacific", "Southwest Pacific") ~ "South Pacific", 
+                                               Region %in% c("Northwest Atlantic", "Northeast Atlantic") ~ "North Atlantic", 
+                                               Region == "Southwest Atlantic" ~ "South Atlantic", 
+                                               Region == "Arctic Ocean" ~ "Arctic Ocean", Region == "Southern Ocean" ~ "Southern Ocean"))
+
 #pollutant by region
-p1 <- ggplot(data = Whale_POPs, aes(Region, log10(`Average Pollutant load (ng/g lipid wt)`))) +
+p1 <- ggplot(data = Whale_POPs, aes(Basin, log10(`Average Pollutant load (ng/g lipid wt)`))) +
   geom_boxplot() +
-  geom_jitter(size = `Sample size`)+
+  geom_jitter(data = filter(Whale_POPs, `Prey type` != "NA"), aes(size = `Sample size`, color = Group), alpha = 0.4)+
   geom_hline(aes(yintercept=4), colour="#990000", linetype="dashed") +
   facet_grid(~`Pollutant type`) +
   theme_bw() +
@@ -36,8 +42,8 @@ Whale_POPs$`Prey type` <- revalue(Whale_POPs$`Prey type`, c("Zooplankton"="Crust
 
 Whale_POPs$`Prey type` <- fct_relevel(Whale_POPs$`Prey type`, "Top predator", "Fish", "Cephalopods", "Forage fish", "Crustacean")
 
-p2 <- ggplot(data = filter(Whale_POPs, `Prey type` != "NA"), aes(`Prey type`, log10(`Average Pollutant load (ng/g lipid wt)`))) +
-  geom_boxplot() + geom_jitter(data = filter(Whale_POPs, `Prey type` != "NA"), aes(size = `Sample size`, color = Species), alpha = 0.4) +
+p2 <- ggplot(data = filter(Whale_POPs, `Prey type` != "NA" & `Pollutant type` != "Hg"), aes(`Prey type`, log10(`Average Pollutant load (ng/g lipid wt)`))) +
+  geom_boxplot() + geom_jitter(data = filter(Whale_POPs, `Prey type` != "NA"), aes(size = `Sample size`, color = Group), alpha = 0.4) +
   geom_hline(aes(yintercept=4), colour="#990000", linetype="dashed") +
   facet_grid(~`Pollutant type`) +
   theme_bw() +
@@ -51,7 +57,9 @@ Whale_POPs %>%
 #pollutant by decade
 p3 <- ggplot(data = Whale_POPs, aes(`Collection decade`, log(`Average Pollutant load (ng/g lipid wt)`))) +
   geom_boxplot() +
-  geom_jitter() +
-  facet_grid(Region~`Pollutant type`) +
+  geom_jitter(data = filter(Whale_POPs, `Prey type` != "NA"), aes(size = `Sample size`, color = Group), alpha = 0.4) +
+  geom_hline(aes(yintercept=4), colour="#990000", linetype="dashed") +
+  facet_grid(~`Pollutant type`) +
+  theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 p3
