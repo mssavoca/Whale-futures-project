@@ -84,9 +84,10 @@ Sp_sum = en_df_tidy %>%
         dplyr::summarize(mean_en_per_hour = mean(en_per_hour),
           mean_corr_en_per_hour = mean(corr_en_per_hour))
 
-###
-# First plot working
-###
+##########################
+# Plot of energy in by time
+##########################
+
 plot_en_per_h_w_avg <- ggplot() +
   geom_point(data=en_df_tidy, aes(hour, log(corr_en_per_hour), color = Species, shape = Species), alpha = 0.2) +
   scale_shape_manual(name = "Species",                      
@@ -106,6 +107,8 @@ plot_en_per_h_w_avg <- ggplot() +
   theme_bw() +
   labs(x = "Time (hours)", y = "log[Energy gain corrected for body mass (kJ/kg)]") 
 plot_en_per_h_w_avg
+
+
 
 
 
