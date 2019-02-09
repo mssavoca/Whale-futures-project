@@ -50,6 +50,10 @@ en_df$en_h6 = en_df$en_h1*6
 # en_df$en_h6 = en_df$en_h1*11
 # en_df$en_h6 = en_df$en_h1*12
 
+#energy acquired in a day
+en_df$en_day = en_df$en_h1*24
+en_df$corr_en_day = en_df$en_day/en_df$Body_mass_kg
+
 # make the wide dataset long (i.e., tidy) 
 en_df_tidy = gather(en_df, hour, en_per_hour, 53:58)
 
@@ -109,6 +113,22 @@ plot_en_per_h_w_avg <- ggplot() +
 plot_en_per_h_w_avg
 
 
+################################################
+# Scaling plot of energy in per day by body size
+################################################
+
+S1 <- ggplot(data=en_df_tidy, aes(x = log10(Body_mass_kg), y=log10(en_day), color = Species)) +
+  geom_point(alpha = 0.5) +  
+  geom_smooth(aes(group = taxa), method = lm) +
+  geom_abline(intercept = 0, slope = 1, linetype ="dashed") + 
+
+S1  
+    
+  theme_bw() + guides(size=FALSE, color=FALSE) + 
+  ylim(1,7.25) + xlim(1,6.25) +
+  theme(axis.text=element_text(size=14), axis.title=element_text(size=16,face="bold")) +
+  labs(x = "log[Mass (kg)]", y = "log[Prey Energy (kJ)]")
+fig_3a + scale_color_manual(values = cols)
 
 
 
