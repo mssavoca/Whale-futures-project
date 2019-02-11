@@ -50,9 +50,13 @@ en_df$en_h6 = en_df$en_h1*6
 # en_df$en_h6 = en_df$en_h1*11
 # en_df$en_h6 = en_df$en_h1*12
 
-#energy acquired in a day
+# energy acquired in a day
 en_df$en_day = en_df$en_h1*24
 en_df$corr_en_day = en_df$en_day/en_df$Body_mass_kg
+
+# mass of prey consumed in an hour / day
+en_df$prey_wt_g_h1 = en_df$Prey_wt_g*en_df$feeding_rate
+en_df$prey_wt_g_day = en_df$prey_wt_g_h1*24
 
 # make the wide dataset long (i.e., tidy) 
 en_df_tidy = gather(en_df, hour, en_per_hour, 53:58)
@@ -84,9 +88,11 @@ Sp_sum = en_df_tidy %>%
         drop_na(feeding_rate) %>% 
         filter(lunge_quality %in% c("ok", "good", NA, "good dives", "good_dives")) %>% 
         filter(sonar_exp %in% c("none", NA)) %>% 
-        group_by(taxa, Species, hour) %>%
+        group_by(taxa, Species) %>%
         dplyr::summarize(mean_en_per_hour = mean(en_per_hour),
-          mean_corr_en_per_hour = mean(corr_en_per_hour))
+          mean_corr_en_per_hour = mean(corr_en_per_hour),
+          mean_prey_wt_g_per_hour = mean(prey_wt_g_h1), 
+          mean_prey_wt_g_per_day = mean(prey_wt_g_day))
 
 ##########################
 # Plot of energy in by time
