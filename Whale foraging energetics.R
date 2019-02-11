@@ -11,6 +11,8 @@ library(tidyverse)
 library(mgcv)
 library(lme4)
 
+# formula for standard error
+SE = function(x){sd(x)/sqrt(sum(!is.na(x)))}
 
 RorqualData <- read_csv("lunge_rates_from_Paolo.csv")
 RorqualData$`deployment-time_h` <- (RorqualData$`deployment-time_secs`)/60/60
@@ -83,16 +85,25 @@ View(en_df_tidy[en_df_tidy$ID == "bb12_214a",])
 en_df_tidy <- en_df_tidy[-which(is.na(en_df_tidy$en_per_hour)), ]
 
 
-# data summary filtering by lunge quality, removing any NA Species or NAs in feeding rate
+# data summary filtering by lunge quality, removing any NA Species or NAs in feeding rate, filtering to tak
 Sp_sum = en_df_tidy %>%
         drop_na(feeding_rate) %>% 
         filter(lunge_quality %in% c("ok", "good", NA, "good dives", "good_dives")) %>% 
-        filter(sonar_exp %in% c("none", NA)) %>% 
+        filter(sonar_exp %in% c("none", NA) & TotalTagTime_h > 23) %>%     #Filtering to only dives of more than 24 h
         group_by(taxa, Species) %>%
         dplyr::summarize(mean_en_per_hour = mean(en_per_hour),
           mean_corr_en_per_hour = mean(corr_en_per_hour),
           mean_prey_wt_g_per_hour = mean(prey_wt_g_h1), 
-          mean_prey_wt_g_per_day = mean(prey_wt_g_day))
+          mean_prey_wt_g_per_day = mean(prey_wt_g_day),
+          SD_mean_prey_wt_g_per_day = sd(prey_wt_g_day),
+          SE_mean_prey_wt_g_per_day = SE(prey_wt_g_day),
+          mean_prey_wt_kg_3mo = mean((prey_wt_g_day/1000)*90),
+          SE_prey_wt_kg_3mo = SE((prey_wt_g_day/1000)*90),
+          mean_prey_wt_kg_6mo = mean((prey_wt_g_day/1000)*180),
+          SE_prey_wt_kg_6mo = SE((prey_wt_g_day/1000)*180),
+          mean_prey_wt_kg_9mo = mean((prey_wt_g_day/1000)*270),
+          SE_prey_wt_kg_9mo = SE((prey_wt_g_day/1000)*270))
+          
 
 ##########################
 # Plot of energy in by time
