@@ -103,7 +103,10 @@ Sp_sum = en_df_tidy %>%
           SE_prey_wt_kg_6mo = SE((prey_wt_g_day/1000)*180),
           mean_prey_wt_kg_9mo = mean((prey_wt_g_day/1000)*270),
           SE_prey_wt_kg_9mo = SE((prey_wt_g_day/1000)*270))
-          
+     
+# make the wide dataset long (i.e., tidy) 
+Sp_sum_tidy = gather(Sp_sum, months_feeding, kg_consumed, c(9,11,13)) 
+#Sp_sum_tidy = gather(Sp_sum, SE_months_feeding, SEkg_consumed, 9:11)
 
 ##########################
 # Plot of energy in by time
@@ -128,6 +131,22 @@ plot_en_per_h_w_avg <- ggplot() +
   theme_bw() +
   labs(x = "Time (hours)", y = "log[Energy gain corrected for body mass (kJ/kg)]") 
 plot_en_per_h_w_avg
+
+
+####################################################
+# Plot of prey wt consumed by season
+####################################################
+
+prey_wt_consumed_season <- ggplot(filter(Sp_sum_tidy,  Species %in% c("Balaenoptera musculus", "Balaenoptera physalus", "Megaptera novaeangliae")),
+                                  aes(x = months_feeding, y=kg_consumed)) +
+  geom_bar(aes(color = Species, fill = Species), stat = "identity", position = "dodge") 
+
+  # geom_errorbar(aes(ymin=kg_consumed-SEkg_consumed, ymax=kg_consumed+SEkg_consumed),
+  #               position="dodge", width=0.25)
+  
+# p + geom_bar(position=position_dodge(width=0.9), stat="identity") + 
+
+prey_wt_consumed_season
 
 
 ################################################
