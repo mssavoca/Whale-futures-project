@@ -106,7 +106,16 @@ Sp_sum = en_df_tidy %>%
      
 # make the wide dataset long (i.e., tidy) 
 Sp_sum_tidy = gather(Sp_sum, months_feeding, kg_consumed, c(9,11,13)) 
-#Sp_sum_tidy = gather(Sp_sum, SE_months_feeding, SEkg_consumed, 9:11)
+Sp_sum_tidy = gather(Sp_sum_tidy, SE, SEkg_consumed, 9:11)
+
+
+# looking at weighted means for NULL an BOUT fin and blue whale
+a = 
+
+fin_NULL <- weighted.mean(c(2740, 6000, 12900, 27840, 60000, 129240, 278520, 600000), c(1.9, 7.5, 12.1, 17.8, 22.7, 22.7, 12.8, 2.5))
+fin_BOUT <- weighted.mean(c(6000, 12900, 27840, 60000, 129240, 278520, 600000), c(0.5, 3.7, 8.3, 13.9, 24.7, 30.9, 18))
+                                                                           
+
 
 ##########################
 # Plot of energy in by time
@@ -138,13 +147,12 @@ plot_en_per_h_w_avg
 ####################################################
 
 prey_wt_consumed_season <- ggplot(filter(Sp_sum_tidy,  Species %in% c("Balaenoptera musculus", "Balaenoptera physalus", "Megaptera novaeangliae")),
-                                  aes(x = months_feeding, y=kg_consumed)) +
-  geom_bar(aes(color = Species, fill = Species), stat = "identity", position = "dodge") 
+                            aes(x = months_feeding, y=kg_consumed, ymin=kg_consumed-SEkg_consumed, ymax=kg_consumed+SEkg_consumed, 
+                                color = Species, fill = Species)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar( position="dodge", color = "black")
 
-  # geom_errorbar(aes(ymin=kg_consumed-SEkg_consumed, ymax=kg_consumed+SEkg_consumed),
-  #               position="dodge", width=0.25)
-  
-# p + geom_bar(position=position_dodge(width=0.9), stat="identity") + 
+# aes(x = Sp_sum_tidy$SE),
 
 prey_wt_consumed_season
 
