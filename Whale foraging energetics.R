@@ -105,18 +105,33 @@ Sp_sum = en_df_tidy %>%
           SE_prey_wt_kg_9mo = SE((prey_wt_g_day/1000)*270))
      
 # make the wide dataset long (i.e., tidy) 
-Sp_sum_tidy = gather(Sp_sum, months_feeding, kg_consumed, c(9,11,13)) 
-Sp_sum_tidy = gather(Sp_sum_tidy, SE, SEkg_consumed, 9:11)
+Sp_sum_tidy = Sp_sum %>%  
+              gather(months_feeding, kg_consumed, c(9,11,13)) %>% 
+  mutate(errBar = case_when(
+    months_feeding == "mean_prey_wt_kg_3mo" ~ SE_prey_wt_kg_3mo,
+    months_feeding == "mean_prey_wt_kg_6mo" ~ SE_prey_wt_kg_6mo,
+    months_feeding == "mean_prey_wt_kg_9mo" ~ SE_prey_wt_kg_9mo
+  ))
+
+
+# Max's cool tidy code to look at feeding rates by rorqual species 
+en_df_tidy %>% filter(TotalTagTime_h > 24) %>% group_by(species) %>% summarize(meanFeedRate = 24*mean(feeding_rate))
+en_df_tidy %>% filter(TotalTagTime_h > 2) %>% ggplot(aes(x = 24*feeding_rate, color = species)) + geom_density()
+
+ggplot(Sp_sum_tidy, aes(x = months_feeding, y = kg_consumed, fill = Species)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = kg_consumed - errBar, ymax = kg_consumed + errBar),
+                stat = "identity") 
+
+geom_errorbar(aes(ymin=kg_consumed-SE_prey_wt_kg_9mo, ymax=kg_consumed+SE_prey_wt_kg_9mo), 
+              stat = "identity", position="dodge", color = "black")
 
 Sp_sum_tidy$MonthsFeeding = ifelse(months_feeding$mean_prey_wt_kg_3mo & months_feeding$SE_prey_wt_kg_3mo, "3mo", 
                                    ifelse(months_feeding$mean_prey_wt_kg_6mo & months_feeding$SE_prey_wt_kg_6mo), "6mo", "9mo")
 
 # looking at weighted means for NULL an BOUT fin and blue whale
-a = 
-
 fin_NULL <- weighted.mean(c(2740, 6000, 12900, 27840, 60000, 129240, 278520, 600000), c(1.9, 7.5, 12.1, 17.8, 22.7, 22.7, 12.8, 2.5))
 fin_BOUT <- weighted.mean(c(6000, 12900, 27840, 60000, 129240, 278520, 600000), c(0.5, 3.7, 8.3, 13.9, 24.7, 30.9, 18))
- 
 
 blue_NULL <- weighted.mean(c(6160, 13400, 28810, 62176, 134000, 288636, 622028, 1340000), c(1.9, 7.4, 12.2, 17.3, 23, 22.8, 12.9, 2.5))
 blue_BOUT <- weighted.mean(c(13400, 28810, 62176, 134000, 288636, 622028, 1340000), c(1, 3.3, 8.2, 17, 28.8, 29.9, 11.8))
@@ -151,8 +166,6 @@ plot_en_per_h_w_avg
 # Plot of prey wt consumed by season
 ####################################################
 
-
-
 Sp_sum_tidy <- group_by(Sp_sum_tidy, months_feeding, SE) 
 
 View(filter(Sp_sum_tidy, Species =="Balaenoptera musculus"))
@@ -160,7 +173,8 @@ View(filter(Sp_sum_tidy, Species =="Balaenoptera musculus"))
 prey_wt_consumed_season <- ggplot(filter(Sp_sum_tidy,  Species %in% c("Balaenoptera musculus", "Balaenoptera physalus", "Megaptera novaeangliae")),
                             aes(x = months_feeding, y=kg_consumed, color = Species, fill = Species)) +
   geom_bar(stat = "identity", position = "dodge") +
-  geom_errorbar(aes(ymin=kg_consumed-SEkg_consumed, ymax=kg_consumed+SEkg_consumed, group = SE), stat = "identity", position="dodge", color = "black")
+  geom_errorbar(aes(ymin=kg_consumed-SE_prey_wt_kg_9mo, ymax=kg_consumed+SE_prey_wt_kg_9mo), 
+                stat = "identity", position="dodge", color = "black")
 
 # aes(x = Sp_sum_tidy$SE),
 
