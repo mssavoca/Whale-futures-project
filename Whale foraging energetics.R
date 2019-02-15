@@ -14,10 +14,32 @@ library(lme4)
 # formula for standard error
 SE = function(x){sd(x)/sqrt(sum(!is.na(x)))}
 
+# load data
+d_full_NULL <- read.csv("Cetacea model output NULL_EXTANT.csv")
+  d_full_NULL$Species <- as.character(d_full_NULL$Species)
+  # the equivalent to an "if" statement
+  d_full_NULL$Species[d_full_NULL$Species == "bonarensis"] <- "bonaerensis"  
+
+d_full_BOUT <- read.csv("Cetacea model output BOUT_EXTANT.csv")
+  d_full_BOUT$Species <- as.character(d_full_BOUT$Species)
+  # the equivalent to an "if" statement
+  d_full_BOUT$Species[d_full_BOUT$Species == "bonarensis"] <- "bonaerensis"  
+
+# sweet tidy code from Max
+d_sum_NULL = d_full_NULL %>% group_by(Genus, Species) %>% summarize(wgtMeanNULL = weighted.mean(Prey.W..g., Percent), medNULL = median(Prey.W..g., Percent))
+d_sum_BOUT = d_full_BOUT %>% group_by(Genus, Species) %>% summarize(wgtMeanBOUT = weighted.mean(Prey.W..g., Percent), medBOUT = median(Prey.W..g., Percent))
+
+
 RorqualData <- read_csv("lunge_rates_from_Paolo.csv")
-RorqualData$`deployment-time_h` <- (RorqualData$`deployment-time_secs`)/60/60
+  RorqualData$`deployment-time_h` <- (RorqualData$`deployment-time_secs`)/60/60
 
 OdontoceteData <- read_csv("foragestats_combined_ko2.csv")
+  OdontoceteData <- separate(OdontoceteData, Species, into = c("Genus", "Species"), sep = "_")
+OdontoceteData <- full_join(OdontoceteData, d_sum_NULL, by = "Species", all = TRUE)
+OdontoceteData <- full_join(OdontoceteData, d_sum_BOUT, by = "Species", all = TRUE)
+  OdontoceteData <- select(OdontoceteData, -Genus.y, -Genus.x)
+
+
 
 en_df <- merge(RorqualData, OdontoceteData, by = "ID", all.x = TRUE, all.y = TRUE)
 
@@ -39,7 +61,7 @@ en_df$taxa <- gsub("O", "Odontocete", en_df$taxa)
 
 #creating new columns
 en_df$feeding_rate = en_df$TotalFeedingEvents/en_df$TotalTagTime_h
-en_df$en_h1 = en_df$Prey_E_kJ*en_df$feeding_rate
+en_df$en_h1 = en_df$Prey_E_kJ*en_df$feeding_rate      # NEED TO CHANGE TO MEDIAN AND/OR WEIGHTED MEAN INSTEAD OF "Prey_E_kJ"
 en_df$en_h2 = en_df$en_h1*2
 en_df$en_h3 = en_df$en_h1*3
 en_df$en_h4 = en_df$en_h1*4
@@ -56,12 +78,16 @@ en_df$en_h6 = en_df$en_h1*6
 en_df$en_day = en_df$en_h1*24
 en_df$corr_en_day = en_df$en_day/en_df$Body_mass_kg
 
-# mass of prey consumed in an hour / day
-en_df$prey_wt_g_h1 = en_df$Prey_wt_g*en_df$feeding_rate
-en_df$prey_wt_g_day = en_df$prey_wt_g_h1*24
+# mass of prey consumed in an hour / day, using the point estimates Danuta gave me, the median and weighted means of the prey
+en_df$prey_wt_g_h1 = en_df$Prey_wt_g*en_df$feeding_rate  # values from Danuta
+en_df$prey_wt_g_day = en_df$prey_wt_g_h1*24              # values from Danuta
+en_df$med_prey_wt_g_NULL_h1 = en_df$medNULL*en_df$feeding_rate
+en_df$wgtMean_prey_wt_g_NULL_h1 = en_df$wgtMeanNULL*en_df$feeding_rate
+en_df$med_prey_wt_g_BOUT_h1 = en_df$medBOUT*en_df$feeding_rate
+en_df$wgtMean_prey_wt_g_BOUT_h1 = en_df$wgtMeanBOUT*en_df$feeding_rate
 
 # make the wide dataset long (i.e., tidy) 
-en_df_tidy = gather(en_df, hour, en_per_hour, 53:58)
+en_df_tidy = gather(en_df, hour, en_per_hour, 58:63)
 
 #turn certain values into numbers
 en_df_tidy$hour = ifelse(en_df_tidy$hour == "en_h1", 1,
@@ -75,10 +101,9 @@ en_df_tidy$corr_en_per_hour = en_df_tidy$en_per_hour/en_df_tidy$Body_mass_kg
 
 #en_df_tidy = spread(en_df_tidy, hour, en_h1_corr_mass:en_h6_corr_mass)
 
-#
+
 #to check if working
-#
-View(en_df_tidy[en_df_tidy$ID == "bb12_214a",])
+  #View(en_df_tidy[en_df_tidy$ID == "bb12_214a",])
 
 
 # remove blank rows
@@ -102,9 +127,20 @@ Sp_sum = en_df_tidy %>%
           mean_prey_wt_kg_6mo = mean((prey_wt_g_day/1000)*180),
           SE_prey_wt_kg_6mo = SE((prey_wt_g_day/1000)*180),
           mean_prey_wt_kg_9mo = mean((prey_wt_g_day/1000)*270),
-          SE_prey_wt_kg_9mo = SE((prey_wt_g_day/1000)*270))
-     
-# make the wide dataset long (i.e., tidy) 
+          SE_prey_wt_kg_9mo = SE((prey_wt_g_day/1000)*270),
+          med_prey_wt_g_NULL_per_hour  = mean(med_prey_wt_g_NULL_h1),
+          wgtMean_prey_wt_g_NULL_per_hour  = mean(wgtMean_prey_wt_g_NULL_h1),
+          med_prey_wt_g_BOUT_per_hour  = mean(med_prey_wt_g_BOUT_h1),
+          wgtMean_prey_wt_g_BOUT_per_hour  = mean(wgtMean_prey_wt_g_BOUT_h1),
+          Prey_wt_kg_3mo_NULLmed = mean((med_prey_wt_g_BOUT_h1/1000)*24*90),
+          Prey_wt_kg_6mo_NULLmed = mean((med_prey_wt_g_BOUT_h1/1000)*24*180),
+          Prey_wt_kg_9mo_NULLmed = mean((med_prey_wt_g_BOUT_h1/1000)*24*270),
+          Prey_wt_kg_3mo_NULLwgtMean = mean((wgtMean_prey_wt_g_NULL_h1/1000)*24*90),
+          Prey_wt_kg_6mo_NULLwgtMean = mean((wgtMean_prey_wt_g_NULL_h1/1000)*24*180),
+          Prey_wt_kg_9mo_NULLwgtMean = mean((wgtMean_prey_wt_g_NULL_h1/1000)*24*270))
+
+   
+# make the wide dataset long (i.e., tidy); CHANGE AS N ECESSARY FOR DIFFERENT PLOTS
 Sp_sum_tidy = Sp_sum %>%  
               gather(months_feeding, kg_consumed, c(9,11,13)) %>% 
   mutate(errBar = case_when(
@@ -116,25 +152,14 @@ Sp_sum_tidy = Sp_sum %>%
 
 # Max's cool tidy code to look at feeding rates by rorqual species 
 en_df_tidy %>% filter(TotalTagTime_h > 24) %>% group_by(species) %>% summarize(meanFeedRate = 24*mean(feeding_rate))
-en_df_tidy %>% filter(TotalTagTime_h > 2) %>% ggplot(aes(x = 24*feeding_rate, color = species)) + geom_density()
+en_df_tidy %>% filter(TotalTagTime_h > 24) %>% ggplot(aes(x = 24*feeding_rate, color = species)) + geom_density()
 
-ggplot(Sp_sum_tidy, aes(x = months_feeding, y = kg_consumed, fill = Species)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_errorbar(aes(ymin = kg_consumed - errBar, ymax = kg_consumed + errBar),
-                stat = "identity") 
-
-geom_errorbar(aes(ymin=kg_consumed-SE_prey_wt_kg_9mo, ymax=kg_consumed+SE_prey_wt_kg_9mo), 
-              stat = "identity", position="dodge", color = "black")
-
-Sp_sum_tidy$MonthsFeeding = ifelse(months_feeding$mean_prey_wt_kg_3mo & months_feeding$SE_prey_wt_kg_3mo, "3mo", 
-                                   ifelse(months_feeding$mean_prey_wt_kg_6mo & months_feeding$SE_prey_wt_kg_6mo), "6mo", "9mo")
-
-# looking at weighted means for NULL an BOUT fin and blue whale
-fin_NULL <- weighted.mean(c(2740, 6000, 12900, 27840, 60000, 129240, 278520, 600000), c(1.9, 7.5, 12.1, 17.8, 22.7, 22.7, 12.8, 2.5))
-fin_BOUT <- weighted.mean(c(6000, 12900, 27840, 60000, 129240, 278520, 600000), c(0.5, 3.7, 8.3, 13.9, 24.7, 30.9, 18))
-
-blue_NULL <- weighted.mean(c(6160, 13400, 28810, 62176, 134000, 288636, 622028, 1340000), c(1.9, 7.4, 12.2, 17.3, 23, 22.8, 12.9, 2.5))
-blue_BOUT <- weighted.mean(c(13400, 28810, 62176, 134000, 288636, 622028, 1340000), c(1, 3.3, 8.2, 17, 28.8, 29.9, 11.8))
+    # # looking at weighted means for NULL an BOUT fin and blue whale
+    # fin_NULL <- weighted.mean(c(2740, 6000, 12900, 27840, 60000, 129240, 278520, 600000), c(1.9, 7.5, 12.1, 17.8, 22.7, 22.7, 12.8, 2.5))
+    # fin_BOUT <- weighted.mean(c(6000, 12900, 27840, 60000, 129240, 278520, 600000), c(0.5, 3.7, 8.3, 13.9, 24.7, 30.9, 18))
+    # 
+    # blue_NULL <- weighted.mean(c(6160, 13400, 28810, 62176, 134000, 288636, 622028, 1340000), c(1.9, 7.4, 12.2, 17.3, 23, 22.8, 12.9, 2.5))
+    # blue_BOUT <- weighted.mean(c(13400, 28810, 62176, 134000, 288636, 622028, 1340000), c(1, 3.3, 8.2, 17, 28.8, 29.9, 11.8))
                                                                                     
   
 ##########################
@@ -166,17 +191,11 @@ plot_en_per_h_w_avg
 # Plot of prey wt consumed by season
 ####################################################
 
-Sp_sum_tidy <- group_by(Sp_sum_tidy, months_feeding, SE) 
-
-View(filter(Sp_sum_tidy, Species =="Balaenoptera musculus"))
-
-prey_wt_consumed_season <- ggplot(filter(Sp_sum_tidy,  Species %in% c("Balaenoptera musculus", "Balaenoptera physalus", "Megaptera novaeangliae")),
-                            aes(x = months_feeding, y=kg_consumed, color = Species, fill = Species)) +
+prey_wt_consumed_season <- ggplot(filter(Sp_sum_tidy,  Species %in% c("musculus", "physalus", "novaeangliae")),
+                            aes(x = months_feeding, y=kg_consumed, fill = Species)) +
   geom_bar(stat = "identity", position = "dodge") +
-  geom_errorbar(aes(ymin=kg_consumed-SE_prey_wt_kg_9mo, ymax=kg_consumed+SE_prey_wt_kg_9mo), 
+  geom_errorbar(aes(ymin = kg_consumed - errBar, ymax = kg_consumed + errBar),
                 stat = "identity", position="dodge", color = "black")
-
-# aes(x = Sp_sum_tidy$SE),
 
 prey_wt_consumed_season
 
