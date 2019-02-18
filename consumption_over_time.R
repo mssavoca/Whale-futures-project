@@ -1,32 +1,32 @@
 ##################
-# Coding with Max
+# Coding with Matt
 ##################
 
 # load packages
-library(ggplot2)
-library(dplyr)
-library(readxl)
 library(ggsci)
 library(tidyverse)
 
-# # cool way to use ifesle
 # d_full_NULL <- read_csv("Cetacea model output NULL_EXTANT.csv") %>% 
 #   mutate(Species = ifelse(Species == "bonarensis", "bonaerensis", Species))
 
+load("data/consumption.RData")
 
 # formula for standard error
 SE <- function(x){sd(x)/sqrt(sum(!is.na(x)))}
 
 # load data
-d_full_NULL <- read_csv("Cetacea model output NULL_EXTANT.csv") %>% 
-  mutate(Species = recode(Species, bonarensis = "bonaerensis"))
-d_full_BOUT <- read_csv("Cetacea model output BOUT_EXTANT.csv") %>% 
-  mutate(Species = recode(Species, bonarensis = "bonaerensis"))
+# d_full_NULL <- read_csv("Cetacea model output NULL_EXTANT.csv") %>% 
+#   mutate(Species = recode(Species, bonarensis = "bonaerensis"))
+# 
+# 
+# d_full_BOUT <- read_csv("Cetacea model output BOUT_EXTANT.csv") %>% 
+#   mutate(Species = recode(Species, bonarensis = "bonaerensis"))
   
-RorqualData <- read_csv("lunge_rates_from_Paolo.csv") %>% 
-  mutate(`deployment-time_h` = `deployment-time_secs`/60/60)
 
 
+# RorqualData <- read_csv("lunge_rates_from_Paolo.csv") %>% 
+#   mutate(`deployment-time_h` = `deployment-time_secs`/60/60)
+# 
 # # sweet tidy code from Max
 d_sum_NULL <- d_full_NULL %>%
   group_by(Genus, Species) %>%
@@ -36,13 +36,27 @@ d_sum_BOUT = d_full_BOUT %>%
   group_by(Genus, Species) %>% 
   summarize(wgtMeanBOUT = weighted.mean(`Prey W (g)`, Percent), 
             medBOUT = median(`Prey W (g)`, Percent))
+# 
+# OdontoceteData <- read_csv("foragestats_combined_ko2.csv") %>% 
+#   separate(Species, into = c("Genus", "Species"), sep = "_") %>% 
+#   left_join(d_sum_NULL, by = c("Genus", "Species"))
 
-OdontoceteData <- read_csv("foragestats_combined_ko2.csv") %>% 
-  separate(Species, into = c("Genus", "Species"), sep = "_") %>% 
-  left_join(d_sum_NULL, by = c("Genus", "Species"))
-##FIXME, I think this works though
-OdontoceteData<- OdontoceteData %>% 
+## FIXME
+OdontoceteData <- OdontoceteData %>% 
   left_join(d_sum_BOUT, by = c("Genus", "Species"))
+
+
+# # sweet tidy code from Max
+# d_sum_NULL <- d_full_NULL %>% 
+#   group_by(Genus, Species) %>% 
+#   summarize(wgtMeanNULL = weighted.mean(`Prey W (g)`, Percent), 
+#             medNULL = median(`Prey W (g)`, Percent))
+# 
+# 
+# 
+# OdontoceteData <- full_join(OdontoceteData, d_sum_NULL, by = "Species", all = TRUE)
+# #OdontoceteData <- full_join(OdontoceteData, d_sum_BOUT, by = "Species", all = TRUE)
+# OdontoceteData <- select(OdontoceteData, -Genus.y, -Genus.x)
 
 # REMEMBER: OdontoceteData is all of the data we need. 
 # Add rorqual data to odontocete data
@@ -69,12 +83,11 @@ scenario_data <- cetacean_data %>%
 resolution <- 100
 # Calculate feeding over time (for plotting)
 max_months <- 6
-max_hours <- 24
 plot_data <- tibble(t = seq(0, 24 * 30 * max_months, length.out = resolution),
                     dummy = 1) %>%
   full_join(mutate(scenario_data, dummy = 1)) %>%
   select(-dummy) %>%
-  filter(Species %in% c("musculus", "physalus", "novaeangliae")) %>%
+  filter(Species == "musculus") %>%
   mutate(prey_consumed = mean_hourly_prey_in_g * t / 1e6)
 # Plot scenarios
 ggplot(plot_data,
@@ -83,33 +96,12 @@ ggplot(plot_data,
            linetype = calc_type, 
            color = scenario_type)) +
   geom_line() +
-  theme_bw() +
-  facet_grid(~Species) +
+  theme_classic() +
   labs(x = "Months", y = "Prey consumed (metric tons)") +
   geom_text(aes(y = prey_consumed - 3, 
                 label = format(prey_consumed, digits = 0)),
             data = filter(plot_data, t == max(t)))
 
-
-
-
-
-
-
-en_df <- merge(RorqualData, OdontoceteData, by = "ID", all.x = TRUE, all.y = TRUE)
-
-# coalescing to merge two columns into one
-en_df$TotalFeedingEvents = coalesce(en_df$total_lunges, en_df$total_buzz_count)
-head(en_df$TotalFeedingEvents)
-
-en_df$TotalTagTime_h = coalesce(en_df$`deployment-time_h`, en_df$total_duration_h)
-
-
-en_df <- filter(en_df, !Species %in% NA)  #removes rows with NA in Species column
-en_df$Species <- gsub("_", " ", en_df$Species) #replaces underscore with space in the Species column
-
-en_df$taxa <- gsub("M", "Mysticete", en_df$taxa)
-en_df$taxa <- gsub("O", "Odontocete", en_df$taxa)
 
 #creating new columns
 en_df$feeding_rate = en_df$TotalFeedingEvents/en_df$TotalTagTime_h
