@@ -51,6 +51,7 @@ p1 <- ggplot(data = filter(Whale_POPs, `Pollutant type`!= "Hg"),
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 p1
 
+<<<<<<< HEAD
 #Graoh pollutant by prey
 Whale_POPs %>% 
   mutate(`Prey type` = revalue(`Prey type`, c("Zooplankton"="Crustacean", "Krill"="Crustacean")),
@@ -59,6 +60,11 @@ Whale_POPs %>%
                          `Pollutant type` == "PBDEs" ~ 3,
                          `Pollutant type` == "DDTs" ~ 4))
   
+=======
+#Graph pollutant by prey
+Whale_POPs$`Prey type` <- revalue(Whale_POPs$`Prey type`, c("Zooplankton"="Crustacean", "Krill"="Crustacean"))
+Whale_POPs$`Prey type` <- fct_relevel(Whale_POPs$`Prey type`, "Top predator", "Fish", "Cephalopods", "Forage fish", "Crustacean")
+>>>>>>> a068935aa1553cc1122617739395dde88cb1143b
 # vline.dat <- data.frame(`Pollutant type`=levels(Whale_POPs$`Pollutant type`), vl=c(4,3.17,4))
 
 a_harm <- tibble(type = c("DDTs", "PBDEs", "PCBs"), harm_val = c(4,3,4))
@@ -75,6 +81,7 @@ p2 <- ggplot(data = filter(Whale_POPs, `Prey type` != "NA" & Basin != "NA" &
 p2
 
 
+<<<<<<< HEAD
 p2_OOEpres <- ggplot(data = filter(Whale_POPs, `Prey type` != "NA" & `Pollutant type` == "PBDEs"), 
                      aes(`Prey type`, log10(`Average Pollutant load (ng/g lipid wt)`))) +
   geom_boxplot(outlier.size = 0) + 
@@ -90,6 +97,17 @@ p2_OOEpres <- ggplot(data = filter(Whale_POPs, `Prey type` != "NA" & `Pollutant 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 p2_OOEpres
 
+=======
+# Pollutant by trophic level (values from Pauly et al. 1998)
+p2_TL <- ggplot(data = filter(Whale_POPs, `Prey type` != "NA" & `Pollutant type` != "Hg"), aes(`Trophic level`, log10(`Average Pollutant load (ng/g lipid wt)`))) +
+  geom_point(aes(size = `Sample size`, color = Group), alpha = 0.3) +
+  geom_smooth(aes(weight = `Sample size`), method = "lm", color = "black") +
+  facet_grid(~`Pollutant type`) +
+  geom_hline(aes(yintercept=4), colour="#990000", linetype="dashed") +
+  xlab("Trophic level") + ylab("log[Average pollutant load (ng/g lipid wt)")+
+  theme_bw()
+p2_TL
+>>>>>>> a068935aa1553cc1122617739395dde88cb1143b
 
 #pollutant by decade
 p3 <- ggplot(data = Whale_POPs, aes(`Collection decade`, log10(`Average Pollutant load (ng/g lipid wt)`))) +
